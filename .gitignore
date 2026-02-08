@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# iMessage database (generated search index)
+search_index.db
+search_index.db-journal
