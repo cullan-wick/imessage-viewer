@@ -2,6 +2,7 @@
 
 import type { Message } from '@/types/database';
 import { formatMessageTimestamp } from '@/lib/utils/date-conversion';
+import { formatContactIdentifier } from '@/lib/utils/format';
 import { AttachmentPreview } from './AttachmentPreview';
 import { useState } from 'react';
 import clsx from 'clsx';
@@ -23,6 +24,12 @@ export function MessageBubble({
 
   const isFromMe = message.isFromMe;
   const hasText = message.text && message.text.trim().length > 0;
+  const hasAttachments = message.hasAttachments && message.attachments && message.attachments.length > 0;
+
+  // Don't render messages with no text and no attachments (empty bubbles)
+  if (!hasText && !hasAttachments) {
+    return null;
+  }
 
   // Different styling for sent (blue) vs received (gray) messages
   const bubbleClasses = clsx(
@@ -34,23 +41,23 @@ export function MessageBubble({
       'bg-[#E5E5EA] dark:bg-[#3A3A3C] text-black dark:text-white': !isFromMe,
 
       // Rounded corners based on position in group
-      // Single message (not grouped)
-      'rounded-2xl': position === 'single',
+      // Single message (not grouped) - all corners fully rounded
+      'rounded-[18px]': position === 'single',
 
-      // First in group
-      'rounded-2xl': position === 'first',
-      'rounded-br-md': position === 'first' && isFromMe,
-      'rounded-bl-md': position === 'first' && !isFromMe,
+      // First in group - bottom tail corner less rounded
+      'rounded-[18px]': position === 'first',
+      'rounded-br-[4px]': position === 'first' && isFromMe,
+      'rounded-bl-[4px]': position === 'first' && !isFromMe,
 
-      // Middle in group
-      'rounded-2xl': position === 'middle',
-      'rounded-br-md rounded-tr-md': position === 'middle' && isFromMe,
-      'rounded-bl-md rounded-tl-md': position === 'middle' && !isFromMe,
+      // Middle in group - both tail corners less rounded
+      'rounded-[18px]': position === 'middle',
+      'rounded-br-[4px] rounded-tr-[4px]': position === 'middle' && isFromMe,
+      'rounded-bl-[4px] rounded-tl-[4px]': position === 'middle' && !isFromMe,
 
-      // Last in group
-      'rounded-2xl': position === 'last',
-      'rounded-tr-md': position === 'last' && isFromMe,
-      'rounded-tl-md': position === 'last' && !isFromMe,
+      // Last in group - top tail corner less rounded
+      'rounded-[18px]': position === 'last',
+      'rounded-tr-[4px]': position === 'last' && isFromMe,
+      'rounded-tl-[4px]': position === 'last' && !isFromMe,
     }
   );
 
@@ -68,10 +75,10 @@ export function MessageBubble({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex flex-col gap-1 max-w-[70%]">
-        {/* Sender name (for group chats) */}
-        {showSender && !isFromMe && message.senderName && (
-          <div className="text-xs text-gray-500 dark:text-gray-400 px-2">
-            {message.senderName || message.senderId}
+        {/* Sender name (for received messages) */}
+        {showSender && !isFromMe && (
+          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 px-2 mb-1">
+            {message.senderName || (message.senderId ? formatContactIdentifier(message.senderId) : 'Unknown')}
           </div>
         )}
 

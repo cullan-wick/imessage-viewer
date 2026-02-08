@@ -63,6 +63,19 @@ export function formatContactIdentifier(identifier: string): string {
 export function getInitials(name: string | null): string {
   if (!name) return '?';
 
+  // For phone numbers, use last 4 digits
+  if (/^[\d\s\-\(\)\+]+$/.test(name)) {
+    const digits = name.replace(/\D/g, '');
+    return digits.slice(-4) || '??';
+  }
+
+  // For emails, use first letter of username
+  if (name.includes('@')) {
+    const username = name.split('@')[0];
+    return username.substring(0, 2).toUpperCase();
+  }
+
+  // For names
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) {
     return parts[0].substring(0, 2).toUpperCase();

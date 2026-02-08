@@ -40,6 +40,9 @@ export async function GET(
     // Resolve file path
     const filePath = resolveAttachmentPath(attachment.filename);
 
+    console.log(`[Attachment ${attachmentId}] DB filename: ${attachment.filename}`);
+    console.log(`[Attachment ${attachmentId}] Resolved path: ${filePath}`);
+
     if (!filePath) {
       return NextResponse.json(
         { error: 'File path not found', message: 'Attachment file path could not be resolved' },
@@ -51,6 +54,7 @@ export async function GET(
     try {
       await fs.access(filePath);
     } catch {
+      console.log(`[Attachment ${attachmentId}] File NOT found at: ${filePath}`);
       return NextResponse.json(
         { error: 'File not found', message: `File does not exist at ${filePath}` },
         { status: 404 }

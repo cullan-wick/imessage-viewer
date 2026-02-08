@@ -8,6 +8,7 @@ import type {
 } from '@/types/database';
 import { getChatDb } from './connection';
 import { appleEpochToDate } from '../utils/date-conversion';
+import { getContactName } from '../utils/contacts';
 
 /**
  * Get all conversations with pagination
@@ -110,7 +111,7 @@ export function getParticipantsForChat(chatId: number): Participant[] {
   return rows.map((row) => ({
     id: row.id,
     contactId: row.contact_id,
-    displayName: null, // Could enhance with Contacts framework later
+    displayName: getContactName(row.contact_id),
     service: row.service,
   }));
 }
@@ -192,7 +193,7 @@ export function getMessages(
       date: appleEpochToDate(row.date),
       isFromMe: row.is_from_me === 1,
       senderId: row.sender_id,
-      senderName: null, // Could enhance with Contacts framework
+      senderName: getContactName(row.sender_id),
       hasAttachments: row.cache_has_attachments === 1,
       isRead: row.is_read === 1,
       isSent: row.is_sent === 1,

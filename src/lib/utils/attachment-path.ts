@@ -18,6 +18,24 @@ export function resolveAttachmentPath(dbFilename: string | null): string | null 
     cleanPath = cleanPath.substring(2);
   }
 
+  // Remove the standard iMessage path prefix if present
+  // The database stores paths like ~/Library/Messages/Attachments/xx/yy/file.jpg
+  // But in a backup, they're just in Attachments/xx/yy/file.jpg
+  const messagePrefixes = [
+    'Library/Messages/Attachments/',
+    'Library/Messages/Attachments',
+  ];
+
+  for (const prefix of messagePrefixes) {
+    if (cleanPath.startsWith(prefix)) {
+      cleanPath = cleanPath.substring(prefix.length);
+      if (cleanPath.startsWith('/')) {
+        cleanPath = cleanPath.substring(1);
+      }
+      break;
+    }
+  }
+
   // If the path is absolute, use it as-is
   if (path.isAbsolute(cleanPath)) {
     return cleanPath;

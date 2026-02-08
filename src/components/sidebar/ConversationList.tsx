@@ -28,10 +28,16 @@ export function ConversationList() {
       const res = await fetch(url.toString());
       const data = await res.json();
 
+      // Parse date strings back to Date objects
+      const conversations = (data.conversations || []).map((conv: any) => ({
+        ...conv,
+        lastMessageDate: conv.lastMessageDate ? new Date(conv.lastMessageDate) : null,
+      }));
+
       if (offset === 0) {
-        setConversations(data.conversations || []);
+        setConversations(conversations);
       } else {
-        setConversations((prev) => [...prev, ...(data.conversations || [])]);
+        setConversations((prev) => [...prev, ...conversations]);
       }
 
       setHasMore(data.hasMore || false);

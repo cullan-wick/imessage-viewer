@@ -26,21 +26,21 @@ export function AttachmentPreview({ attachment, onClick }: AttachmentPreviewProp
     return (
       <div
         className={clsx(
-          'relative rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity',
+          'relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity',
           'bg-gray-200 dark:bg-gray-700',
           {
             'animate-pulse': isLoading,
           }
         )}
         onClick={onClick}
-        style={{ maxWidth: '300px', maxHeight: '300px' }}
+        style={{ maxWidth: '300px' }}
       >
         <Image
           src={attachmentUrl}
           alt="Attachment"
           width={300}
-          height={300}
-          className="object-cover w-full h-full"
+          height={200}
+          className="object-contain w-full h-auto rounded-xl"
           onLoad={() => setIsLoading(false)}
           onError={() => {
             setImageError(true);

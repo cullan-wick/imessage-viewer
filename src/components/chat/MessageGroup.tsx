@@ -2,7 +2,7 @@
 
 import type { Message } from '@/types/database';
 import { MessageBubble } from './MessageBubble';
-import { getInitials, getContactColor } from '@/lib/utils/format';
+import { getInitials, getContactColor, formatContactIdentifier } from '@/lib/utils/format';
 
 interface MessageGroupProps {
   messages: Message[];
@@ -18,7 +18,7 @@ export function MessageGroup({ messages, showSender = false }: MessageGroupProps
   const isFromMe = firstMessage.isFromMe;
 
   // Determine sender info
-  const senderName = firstMessage.senderName || firstMessage.senderId;
+  const senderName = firstMessage.senderName || firstMessage.senderId || 'Unknown';
   const senderInitials = getInitials(senderName);
   const senderColor = getContactColor(firstMessage.senderId || 'unknown');
 

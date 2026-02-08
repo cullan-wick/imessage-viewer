@@ -32,8 +32,14 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
       .then((res) => res.json())
       .then((data) => {
         if (data.messages) {
+          // Parse date strings back to Date objects
+          const parsedMessages = data.messages.map((msg: any) => ({
+            ...msg,
+            date: new Date(msg.date),
+          }));
+
           // Messages come in DESC order (newest first), but we want to display oldest first
-          const sortedMessages = [...data.messages].reverse();
+          const sortedMessages = [...parsedMessages].reverse();
           setMessages(sortedMessages);
           setHasMore(data.hasMore);
         }
@@ -70,8 +76,14 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
           previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
         }
 
+        // Parse date strings back to Date objects
+        const parsedMessages = data.messages.map((msg: any) => ({
+          ...msg,
+          date: new Date(msg.date),
+        }));
+
         // Messages come in DESC order, reverse them
-        const olderMessages = [...data.messages].reverse();
+        const olderMessages = [...parsedMessages].reverse();
         setMessages((prev) => [...olderMessages, ...prev]);
         setHasMore(data.hasMore);
 
@@ -219,7 +231,7 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
                       <MessageGroup
                         key={`${dayKey}-${idx}`}
                         messages={group}
-                        showSender={conversation?.isGroup}
+                        showSender={true}
                       />
                     ))}
                   </div>
