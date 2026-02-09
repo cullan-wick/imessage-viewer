@@ -5,6 +5,7 @@ import { ConversationList } from '@/components/sidebar/ConversationList';
 import { ChatView } from '@/components/chat/ChatView';
 import { SearchBar } from '@/components/search/SearchBar';
 import { SearchResults } from '@/components/search/SearchResults';
+import { FilterPanel } from '@/components/filters/FilterPanel';
 import { useSearch } from '@/lib/hooks/useSearch';
 import { useState, useEffect } from 'react';
 import type { Conversation } from '@/types/database';
@@ -18,6 +19,7 @@ export default function Home() {
   const [isIndexBuilt, setIsIndexBuilt] = useState<boolean | null>(null);
   const [isBuilding, setIsBuilding] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   // Search state
   const search = useSearch();
@@ -83,14 +85,33 @@ export default function Home() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-white dark:bg-black">
-      {/* Global search bar */}
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-2xl px-4">
+      {/* Global search bar with filter toggle */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-2xl px-4 flex items-center gap-2">
         <SearchBar
           value={search.query}
           onChange={search.setQuery}
           onFocus={() => setIsSearchOpen(true)}
           isLoading={search.isLoading}
         />
+        <button
+          onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+          className="p-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          title="Toggle filters"
+        >
+          <svg
+            className="w-5 h-5 text-gray-600 dark:text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+            />
+          </svg>
+        </button>
       </div>
 
       {/* Search results overlay */}
@@ -176,6 +197,14 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* Filter panel */}
+        <FilterPanel
+          filters={search.filters}
+          onFiltersChange={search.setFilters}
+          isOpen={isFilterPanelOpen}
+          onToggle={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+        />
       </div>
     </div>
   );
