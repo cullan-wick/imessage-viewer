@@ -3,6 +3,9 @@
 import { useSearchParams } from 'next/navigation';
 import { ConversationList } from '@/components/sidebar/ConversationList';
 import { ChatView } from '@/components/chat/ChatView';
+import { SearchBar } from '@/components/search/SearchBar';
+import { SearchResults } from '@/components/search/SearchResults';
+import { useSearch } from '@/lib/hooks/useSearch';
 import { useState, useEffect } from 'react';
 import type { Conversation } from '@/types/database';
 
@@ -14,6 +17,10 @@ export default function Home() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [isIndexBuilt, setIsIndexBuilt] = useState<boolean | null>(null);
   const [isBuilding, setIsBuilding] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Search state
+  const search = useSearch();
 
   // Check if search index is built
   useEffect(() => {
@@ -76,6 +83,32 @@ export default function Home() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-white dark:bg-black">
+      {/* Global search bar */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-2xl px-4">
+        <SearchBar
+          value={search.query}
+          onChange={search.setQuery}
+          onFocus={() => setIsSearchOpen(true)}
+          isLoading={search.isLoading}
+        />
+      </div>
+
+      {/* Search results overlay */}
+      <SearchResults
+        results={search.results}
+        isLoading={search.isLoading}
+        error={search.error}
+        query={search.query}
+        total={search.total}
+        hasMore={search.hasMore}
+        onLoadMore={search.loadMore}
+        onClose={() => {
+          setIsSearchOpen(false);
+          search.clear();
+        }}
+        isOpen={isSearchOpen && (search.query.length > 0 || search.results.length > 0)}
+      />
+
       {/* Search index banner */}
       {isIndexBuilt === false && (
         <div className="absolute top-0 left-0 right-0 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3 z-50">
