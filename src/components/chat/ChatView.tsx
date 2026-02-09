@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Message, Conversation } from '@/types/database';
 import { MessageGroup } from './MessageGroup';
 import { DateDivider } from './DateDivider';
+import { MediaGallery } from '../media/MediaGallery';
 import { groupMessagesByDay, isSameDay } from '@/lib/utils/date-conversion';
 
 interface ChatViewProps {
@@ -16,6 +17,7 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -184,7 +186,11 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+          <button
+            onClick={() => setIsGalleryOpen(true)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            title="Open Media Gallery"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -253,6 +259,13 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
         {/* Scroll anchor */}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Media Gallery */}
+      <MediaGallery
+        chatId={chatId}
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+      />
     </div>
   );
 }

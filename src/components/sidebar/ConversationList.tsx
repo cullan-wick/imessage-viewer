@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Conversation } from '@/types/database';
 import { ConversationItem } from './ConversationItem';
+import { ConversationSkeleton } from './ConversationSkeleton';
 import { Virtuoso } from 'react-virtuoso';
 
 export function ConversationList() {
@@ -94,8 +95,10 @@ export function ConversationList() {
       {/* Conversations list */}
       <div className="flex-1 overflow-hidden">
         {isLoading && conversations.length === 0 ? (
-          <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          <div>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <ConversationSkeleton key={i} />
+            ))}
           </div>
         ) : conversations.length === 0 ? (
           <div className="flex justify-center items-center h-full text-gray-500 dark:text-gray-400">
