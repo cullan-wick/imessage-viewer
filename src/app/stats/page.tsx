@@ -7,7 +7,8 @@ import { TopContactsChart } from '@/components/stats/TopContactsChart';
 import { MessagesOverTimeChart } from '@/components/stats/MessagesOverTimeChart';
 import { SentReceivedChart } from '@/components/stats/SentReceivedChart';
 import { ActivityHoursChart } from '@/components/stats/ActivityHoursChart';
-import type { Statistics } from '@/types/database';
+import { StreakChart } from '@/components/stats/StreakChart';
+import type { Statistics, TopContactsPeriod } from '@/types/database';
 
 export default function StatsPage() {
   const [stats, setStats] = useState<Statistics | null>(null);
@@ -85,10 +86,15 @@ export default function StatsPage() {
   const totalReceived = stats.sentVsReceived.received;
   const totalMessages = totalSent + totalReceived;
 
-  const topContactsData = stats.topContacts.map((contact) => ({
-    name: contact.name,
-    messageCount: contact.messageCount,
-  }));
+  const topContactsByPeriodData = Object.fromEntries(
+    Object.entries(stats.topContactsByPeriod).map(([period, contacts]) => [
+      period,
+      contacts.map((contact) => ({
+        name: contact.name,
+        messageCount: contact.messageCount,
+      })),
+    ])
+  ) as Record<TopContactsPeriod, Array<{ name: string; messageCount: number }>>;
 
   const messagesOverTimeData = stats.messagesOverTime.map((item) => ({
     month: item.period,
@@ -140,9 +146,10 @@ export default function StatsPage() {
 
         <div className="mt-8 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TopContactsChart data={topContactsData} />
+            <TopContactsChart dataByPeriod={topContactsByPeriodData} />
             <SentReceivedChart sent={totalSent} received={totalReceived} />
           </div>
+          <StreakChart data={stats.streaks} />
           <MessagesOverTimeChart data={messagesOverTimeData} />
           <ActivityHoursChart data={stats.activityByHour} />
         </div>

@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import type { TopContactsPeriod } from '@/types/database';
 
 interface TopContact {
   name: string;
@@ -8,10 +10,21 @@ interface TopContact {
 }
 
 interface TopContactsChartProps {
-  data: TopContact[];
+  dataByPeriod: Record<TopContactsPeriod, TopContact[]>;
 }
 
-export function TopContactsChart({ data }: TopContactsChartProps) {
+const periods: { key: TopContactsPeriod; label: string }[] = [
+  { key: '7d', label: '7 Days' },
+  { key: '30d', label: '30 Days' },
+  { key: '6m', label: '6 Months' },
+  { key: '1y', label: '1 Year' },
+  { key: 'all', label: 'All Time' },
+];
+
+export function TopContactsChart({ dataByPeriod }: TopContactsChartProps) {
+  const [selectedPeriod, setSelectedPeriod] = useState<TopContactsPeriod>('all');
+
+  const data = dataByPeriod[selectedPeriod] || [];
   const topContacts = data.slice(0, 10).sort((a, b) => b.messageCount - a.messageCount);
   const chartData = topContacts.map((contact) => ({
     ...contact,
@@ -20,9 +33,27 @@ export function TopContactsChart({ data }: TopContactsChartProps) {
 
   return (
     <div className="rounded-xl p-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-      <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
-        Top 10 Contacts
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+          Top Contacts
+        </h3>
+        <div className="flex gap-1">
+          {periods.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setSelectedPeriod(p.key)}
+              className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+              style={{
+                background: selectedPeriod === p.key ? 'var(--accent)' : 'var(--surface-hover)',
+                color: selectedPeriod === p.key ? 'white' : 'var(--muted)',
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {chartData.length === 0 ? (
         <div className="flex items-center justify-center h-64">
           <p className="text-sm" style={{ color: 'var(--muted)' }}>No data available</p>

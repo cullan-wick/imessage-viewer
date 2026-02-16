@@ -5,9 +5,11 @@ import type {
   Attachment,
   Statistics,
   SearchFilters,
+  TopContactsPeriod,
+  TopContact,
 } from '@/types/database';
 import { getChatDb } from './connection';
-import { appleEpochToDate } from '../utils/date-conversion';
+import { appleEpochToDate, dateToAppleEpoch } from '../utils/date-conversion';
 import { getContactName } from '../utils/contacts';
 import { extractTextFromAttributedBody } from '../utils/typedstream';
 
@@ -393,27 +395,105 @@ export function getStatistics(): Statistics {
 
   const overview = db.prepare(overviewQuery).get() as any;
 
-  // Top contacts
-  const topContactsQuery = `
+  // Top contacts by time period
+  const getTopContactsForPeriod = (sinceDate?: Date): TopContact[] => {
+    let query = `
+      SELECT
+        h.id as identifier,
+        COUNT(m.ROWID) as message_count,
+        SUM(CASE WHEN m.is_from_me = 1 THEN 1 ELSE 0 END) as sent_count,
+        SUM(CASE WHEN m.is_from_me = 0 THEN 1 ELSE 0 END) as received_count
+      FROM message m
+      LEFT JOIN handle h ON m.handle_id = h.ROWID
+      WHERE h.id IS NOT NULL
+    `;
+    const params: any[] = [];
+    if (sinceDate) {
+      query += ` AND m.date >= ?`;
+      params.push(dateToAppleEpoch(sinceDate));
+    }
+    query += ` GROUP BY h.id ORDER BY message_count DESC LIMIT 10`;
+
+    const rows = (db.prepare(query).all(...params) as any[]);
+    return rows.map((row) => ({
+      name: getContactName(row.identifier) || row.identifier,
+      identifier: row.identifier,
+      messageCount: row.message_count,
+      sentCount: row.sent_count,
+      receivedCount: row.received_count,
+    }));
+  };
+
+  const now = new Date();
+  const periodCutoffs: Record<TopContactsPeriod, Date | undefined> = {
+    '7d': new Date(now.getTime() - 7 * 86_400_000),
+    '30d': new Date(now.getTime() - 30 * 86_400_000),
+    '6m': new Date(new Date(now).setMonth(now.getMonth() - 6)),
+    '1y': new Date(new Date(now).setFullYear(now.getFullYear() - 1)),
+    'all': undefined,
+  };
+
+  const topContactsByPeriod = {} as Statistics['topContactsByPeriod'];
+  for (const [period, cutoff] of Object.entries(periodCutoffs)) {
+    topContactsByPeriod[period as TopContactsPeriod] = getTopContactsForPeriod(cutoff);
+  }
+  const topContacts = topContactsByPeriod['all'];
+
+  // Streak tracking
+  const streakQuery = `
+    WITH contact_days AS (
+      SELECT
+        h.id AS identifier,
+        DATE(m.date/1000000000 + 978307200, 'unixepoch', 'localtime') AS msg_date
+      FROM message m
+      JOIN handle h ON m.handle_id = h.ROWID
+      WHERE h.id IS NOT NULL
+      GROUP BY h.id, msg_date
+    ),
+    islands AS (
+      SELECT
+        identifier,
+        msg_date,
+        DATE(msg_date, '-' || (ROW_NUMBER() OVER (PARTITION BY identifier ORDER BY msg_date) - 1) || ' days') AS island_id
+      FROM contact_days
+    ),
+    streaks AS (
+      SELECT
+        identifier,
+        COUNT(*) AS streak_length,
+        MAX(msg_date) AS streak_end
+      FROM islands
+      GROUP BY identifier, island_id
+    ),
+    ranked AS (
+      SELECT
+        identifier,
+        MAX(streak_length) AS longest_streak
+      FROM streaks
+      GROUP BY identifier
+      ORDER BY longest_streak DESC
+      LIMIT 10
+    )
     SELECT
-      h.id as identifier,
-      COUNT(m.ROWID) as message_count,
-      SUM(CASE WHEN m.is_from_me = 1 THEN 1 ELSE 0 END) as sent_count,
-      SUM(CASE WHEN m.is_from_me = 0 THEN 1 ELSE 0 END) as received_count
-    FROM message m
-    LEFT JOIN handle h ON m.handle_id = h.ROWID
-    WHERE h.id IS NOT NULL
-    GROUP BY h.id
-    ORDER BY message_count DESC
-    LIMIT 10
+      r.identifier,
+      r.longest_streak,
+      COALESCE(
+        (SELECT s.streak_length FROM streaks s
+         WHERE s.identifier = r.identifier
+         AND s.streak_end >= DATE('now', 'localtime', '-1 day')
+         ORDER BY s.streak_end DESC LIMIT 1),
+        0
+      ) AS current_streak
+    FROM ranked r
+    ORDER BY r.longest_streak DESC
   `;
 
-  const topContacts = (db.prepare(topContactsQuery).all() as any[]).map((row) => ({
+  const streakRows = db.prepare(streakQuery).all() as any[];
+  const streaks = streakRows.map((row) => ({
     name: getContactName(row.identifier) || row.identifier,
     identifier: row.identifier,
-    messageCount: row.message_count,
-    sentCount: row.sent_count,
-    receivedCount: row.received_count,
+    longestStreak: row.longest_streak,
+    currentStreak: row.current_streak,
   }));
 
   // Sent vs received
@@ -475,6 +555,8 @@ export function getStatistics(): Statistics {
       },
     },
     topContacts,
+    topContactsByPeriod,
+    streaks,
     messagesOverTime,
     sentVsReceived: {
       sent: sentReceived.sent || 0,

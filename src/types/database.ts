@@ -146,6 +146,23 @@ export interface SearchResult {
   matchCount: number;
 }
 
+export type TopContactsPeriod = '7d' | '30d' | '6m' | '1y' | 'all';
+
+export interface TopContact {
+  name: string;
+  identifier: string;
+  messageCount: number;
+  sentCount: number;
+  receivedCount: number;
+}
+
+export interface StreakEntry {
+  name: string;
+  identifier: string;
+  longestStreak: number;
+  currentStreak: number;
+}
+
 export interface Statistics {
   overview: {
     totalMessages: number;
@@ -156,13 +173,9 @@ export interface Statistics {
       latest: Date | null;
     };
   };
-  topContacts: Array<{
-    name: string;
-    identifier: string;
-    messageCount: number;
-    sentCount: number;
-    receivedCount: number;
-  }>;
+  topContacts: TopContact[];
+  topContactsByPeriod: Record<TopContactsPeriod, TopContact[]>;
+  streaks: StreakEntry[];
   messagesOverTime: Array<{
     period: string;
     count: number;
