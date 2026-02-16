@@ -9,6 +9,7 @@ import type {
 import { getChatDb } from './connection';
 import { appleEpochToDate } from '../utils/date-conversion';
 import { getContactName } from '../utils/contacts';
+import { extractTextFromAttributedBody } from '../utils/typedstream';
 
 /**
  * Get all conversations with pagination
@@ -36,6 +37,14 @@ export function getConversations(
         ORDER BY m2.date DESC
         LIMIT 1
       ) as last_message_text,
+      (
+        SELECT m2.attributedBody
+        FROM message m2
+        JOIN chat_message_join cmj2 ON m2.ROWID = cmj2.message_id
+        WHERE cmj2.chat_id = c.ROWID
+        ORDER BY m2.date DESC
+        LIMIT 1
+      ) as last_message_attributed_body,
       (
         SELECT m2.is_from_me
         FROM message m2
@@ -74,6 +83,9 @@ export function getConversations(
 
   return rows.map((row) => {
     const participants = getParticipantsForChat(row.id);
+    const lastMessageText = row.last_message_text
+      || extractTextFromAttributedBody(row.last_message_attributed_body)
+      || null;
 
     return {
       id: row.id,
@@ -81,7 +93,7 @@ export function getConversations(
       displayName: row.display_name || deriveDisplayName(row.chat_identifier, participants),
       isGroup: row.style === 43, // 43 = group chat
       lastMessageDate: row.last_message_date ? appleEpochToDate(row.last_message_date) : null,
-      lastMessageText: row.last_message_text,
+      lastMessageText,
       lastMessageIsFromMe: row.last_message_is_from_me === 1,
       messageCount: row.message_count,
       participants,
@@ -121,11 +133,11 @@ export function getParticipantsForChat(chatId: number): Participant[] {
  */
 function deriveDisplayName(chatIdentifier: string, participants: Participant[]): string {
   if (participants.length === 1) {
-    return participants[0].contactId;
+    return participants[0].displayName || participants[0].contactId;
   }
 
   if (participants.length > 1) {
-    return participants.map(p => p.contactId.split('@')[0]).join(', ');
+    return participants.map(p => p.displayName || p.contactId.split('@')[0]).join(', ');
   }
 
   return chatIdentifier;
@@ -147,6 +159,7 @@ export function getMessages(
       m.ROWID as id,
       m.guid,
       m.text,
+      m.attributedBody,
       m.date,
       m.is_from_me,
       m.is_read,
@@ -186,10 +199,13 @@ export function getMessages(
   const messageRows = hasMore ? rows.slice(0, limit) : rows;
 
   const messages = messageRows.map((row) => {
+    // Use text column first, fall back to extracting from attributedBody blob
+    const text = row.text || extractTextFromAttributedBody(row.attributedBody) || null;
+
     const message: Message = {
       id: row.id,
       guid: row.guid,
-      text: row.text,
+      text,
       date: appleEpochToDate(row.date),
       isFromMe: row.is_from_me === 1,
       senderId: row.sender_id,
@@ -393,7 +409,7 @@ export function getStatistics(): Statistics {
   `;
 
   const topContacts = (db.prepare(topContactsQuery).all() as any[]).map((row) => ({
-    name: row.identifier,
+    name: getContactName(row.identifier) || row.identifier,
     identifier: row.identifier,
     messageCount: row.message_count,
     sentCount: row.sent_count,
@@ -492,7 +508,6 @@ export function getConversationCount(): number {
  * Get a specific conversation by ID
  */
 export function getConversation(chatId: number): Conversation | null {
-  const conversations = getConversations(1, 0);
   const db = getChatDb();
 
   const query = `
@@ -510,6 +525,14 @@ export function getConversation(chatId: number): Conversation | null {
         ORDER BY m2.date DESC
         LIMIT 1
       ) as last_message_text,
+      (
+        SELECT m2.attributedBody
+        FROM message m2
+        JOIN chat_message_join cmj2 ON m2.ROWID = cmj2.message_id
+        WHERE cmj2.chat_id = c.ROWID
+        ORDER BY m2.date DESC
+        LIMIT 1
+      ) as last_message_attributed_body,
       (
         SELECT m2.is_from_me
         FROM message m2
@@ -534,6 +557,9 @@ export function getConversation(chatId: number): Conversation | null {
   }
 
   const participants = getParticipantsForChat(row.id);
+  const lastMessageText = row.last_message_text
+    || extractTextFromAttributedBody(row.last_message_attributed_body)
+    || null;
 
   return {
     id: row.id,
@@ -541,7 +567,7 @@ export function getConversation(chatId: number): Conversation | null {
     displayName: row.display_name || deriveDisplayName(row.chat_identifier, participants),
     isGroup: row.style === 43,
     lastMessageDate: row.last_message_date ? appleEpochToDate(row.last_message_date) : null,
-    lastMessageText: row.last_message_text,
+    lastMessageText,
     lastMessageIsFromMe: row.last_message_is_from_me === 1,
     messageCount: row.message_count,
     participants,

@@ -12,54 +12,45 @@ interface TopContactsChartProps {
 }
 
 export function TopContactsChart({ data }: TopContactsChartProps) {
-  // Take top 10 and sort by count descending
   const topContacts = data.slice(0, 10).sort((a, b) => b.messageCount - a.messageCount);
-
-  // Truncate long names
   const chartData = topContacts.map((contact) => ({
     ...contact,
-    displayName: contact.name.length > 20 ? contact.name.substring(0, 17) + '...' : contact.name,
+    displayName: contact.name.length > 18 ? contact.name.substring(0, 15) + '...' : contact.name,
   }));
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+    <div className="rounded-xl p-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
         Top 10 Contacts
       </h3>
-
       {chartData.length === 0 ? (
-        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-          No data available
+        <div className="flex items-center justify-center h-64">
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>No data available</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
-            <XAxis type="number" stroke="#9CA3AF" />
+        <ResponsiveContainer width="100%" height={380}>
+          <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 20, left: 90, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+            <XAxis type="number" stroke="var(--muted-light)" tick={{ fill: 'var(--muted)', fontSize: 11 }} />
             <YAxis
               dataKey="displayName"
               type="category"
-              stroke="#9CA3AF"
-              tick={{ fill: '#6B7280' }}
+              stroke="var(--muted-light)"
+              tick={{ fill: 'var(--muted)', fontSize: 12 }}
+              width={85}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#1F2937',
-                border: '1px solid #374151',
-                borderRadius: '8px',
-                color: '#F9FAFB',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                color: 'var(--foreground)',
+                fontSize: 12,
+                padding: '8px 12px',
               }}
-              labelStyle={{ color: '#F9FAFB' }}
-              formatter={(value: number, name: string) => [
-                new Intl.NumberFormat('en-US').format(value),
-                'Messages',
-              ]}
+              formatter={(value: number | undefined) => [value != null ? new Intl.NumberFormat('en-US').format(value) : '0', 'Messages']}
             />
-            <Bar dataKey="messageCount" fill="#0B93F6" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="messageCount" fill="var(--accent)" radius={[0, 4, 4, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}

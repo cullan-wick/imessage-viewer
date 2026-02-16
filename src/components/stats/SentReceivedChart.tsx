@@ -1,6 +1,6 @@
 'use client';
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface SentReceivedChartProps {
   sent: number;
@@ -13,69 +13,62 @@ export function SentReceivedChart({ sent, received }: SentReceivedChartProps) {
     { name: 'Received', value: received },
   ];
 
-  const COLORS = ['#0B93F6', '#8E8E93'];
-
+  const COLORS = ['var(--accent)', 'var(--muted-light)'];
   const total = sent + received;
-  const sentPercent = total > 0 ? ((sent / total) * 100).toFixed(1) : '0';
-  const receivedPercent = total > 0 ? ((received / total) * 100).toFixed(1) : '0';
+  const sentPct = total > 0 ? ((sent / total) * 100).toFixed(1) : '0';
+  const recvPct = total > 0 ? ((received / total) * 100).toFixed(1) : '0';
+  const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+    <div className="rounded-xl p-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
         Sent vs Received
       </h3>
 
       {total === 0 ? (
-        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-          No data available
+        <div className="flex items-center justify-center h-64">
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>No data available</p>
         </div>
       ) : (
-        <div className="flex flex-col items-center">
-          <ResponsiveContainer width="100%" height={300}>
+        <div>
+          <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Pie
                 data={data}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                outerRadius={100}
-                fill="#8884d8"
+                innerRadius={60}
+                outerRadius={95}
+                paddingAngle={2}
                 dataKey="value"
               >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                {data.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index]} />
                 ))}
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1F2937',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  color: '#F9FAFB',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  color: 'var(--foreground)',
+                  fontSize: 12,
+                  padding: '8px 12px',
                 }}
-                formatter={(value: number) => new Intl.NumberFormat('en-US').format(value)}
+                formatter={(value: number | undefined) => value != null ? fmt(value) : '0'}
               />
             </PieChart>
           </ResponsiveContainer>
 
-          {/* Summary */}
-          <div className="grid grid-cols-2 gap-4 w-full mt-6">
-            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {new Intl.NumberFormat('en-US').format(sent)}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Sent ({sentPercent}%)
-              </div>
+          {/* Legend */}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="rounded-lg p-3 text-center" style={{ background: 'var(--accent-soft)' }}>
+              <div className="text-lg font-bold" style={{ color: 'var(--accent)' }}>{fmt(sent)}</div>
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>Sent ({sentPct}%)</div>
             </div>
-            <div className="text-center p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                {new Intl.NumberFormat('en-US').format(received)}
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Received ({receivedPercent}%)
-              </div>
+            <div className="rounded-lg p-3 text-center" style={{ background: 'var(--surface-hover)' }}>
+              <div className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>{fmt(received)}</div>
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>Received ({recvPct}%)</div>
             </div>
           </div>
         </div>

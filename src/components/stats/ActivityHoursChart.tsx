@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface ActivityByHour {
   hour: number;
@@ -12,95 +12,68 @@ interface ActivityHoursChartProps {
 }
 
 export function ActivityHoursChart({ data }: ActivityHoursChartProps) {
-  // Ensure we have data for all 24 hours
   const fullData = Array.from({ length: 24 }, (_, i) => {
     const existing = data.find((d) => d.hour === i);
     return {
       hour: i,
       count: existing?.count || 0,
-      displayHour: i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`,
+      label: i === 0 ? '12a' : i < 12 ? `${i}a` : i === 12 ? '12p' : `${i - 12}p`,
     };
   });
 
-  // Determine sleep hours (typically midnight to 6 AM)
-  const isSleepHour = (hour: number) => hour >= 0 && hour < 6;
+  const maxCount = Math.max(...fullData.map(d => d.count));
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        Activity by Hour of Day
+    <div className="rounded-xl p-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
+        Activity by Hour
       </h3>
 
       {data.length === 0 ? (
-        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-          No data available
+        <div className="flex items-center justify-center h-64">
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>No data available</p>
         </div>
       ) : (
-        <div>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart
-              data={fullData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 60 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
-              <XAxis
-                dataKey="displayHour"
-                stroke="#9CA3AF"
-                tick={{ fill: '#6B7280', fontSize: 11 }}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis stroke="#9CA3AF" tick={{ fill: '#6B7280' }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1F2937',
-                  border: '1px solid #374151',
-                  borderRadius: '8px',
-                  color: '#F9FAFB',
-                }}
-                labelStyle={{ color: '#F9FAFB' }}
-                formatter={(value: number) => [
-                  new Intl.NumberFormat('en-US').format(value),
-                  'Messages',
-                ]}
-              />
-              <Bar
-                dataKey="count"
-                fill="#0B93F6"
-                radius={[4, 4, 0, 0]}
-                // Color sleep hours differently
-                shape={(props: any) => {
-                  const { fill, x, y, width, height, payload } = props;
-                  const fillColor = isSleepHour(payload.hour) ? '#6B7280' : fill;
-                  return (
-                    <rect
-                      x={x}
-                      y={y}
-                      width={width}
-                      height={height}
-                      fill={fillColor}
-                      rx={4}
-                      ry={4}
-                    />
-                  );
-                }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-6 mt-4">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-[#0B93F6] rounded"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Active Hours</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gray-500 rounded"></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Sleep Hours (12 AM - 6 AM)</span>
-            </div>
-          </div>
-        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={fullData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} vertical={false} />
+            <XAxis
+              dataKey="label"
+              stroke="var(--muted-light)"
+              tick={{ fill: 'var(--muted)', fontSize: 10 }}
+              interval={1}
+            />
+            <YAxis stroke="var(--muted-light)" tick={{ fill: 'var(--muted)', fontSize: 11 }} />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                color: 'var(--accent)',
+                fontSize: 12,
+                padding: '8px 12px',
+              }}
+              itemStyle={{ color: 'var(--accent)' }}
+              labelStyle={{ color: 'var(--accent)' }}
+              formatter={(value: number | undefined) => [value != null ? new Intl.NumberFormat('en-US').format(value) : '0', 'Messages']}
+              labelFormatter={(label) => {
+                const item = fullData.find(d => d.label === label);
+                if (!item) return label;
+                const h = item.hour;
+                return h === 0 ? '12:00 AM' : h < 12 ? `${h}:00 AM` : h === 12 ? '12:00 PM' : `${h-12}:00 PM`;
+              }}
+            />
+            <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+              {fullData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={'var(--accent)'}
+                  opacity={entry.count === 0 ? 0.2 : 0.4 + (entry.count / maxCount) * 0.6}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       )}
     </div>
   );

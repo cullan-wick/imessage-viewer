@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import type { SearchResult } from '@/types/database';
 import { formatMessageTimestamp } from '@/lib/utils/date-conversion';
 import { formatContactIdentifier } from '@/lib/utils/format';
-import clsx from 'clsx';
 
 interface SearchResultItemProps {
   result: SearchResult;
@@ -15,7 +14,6 @@ export function SearchResultItem({ result, onClose }: SearchResultItemProps) {
   const router = useRouter();
 
   const handleClick = () => {
-    // Navigate to the chat and highlight the message
     router.push(`/?chat=${result.conversation.id}&message=${result.message.id}`);
     onClose?.();
   };
@@ -27,31 +25,34 @@ export function SearchResultItem({ result, onClose }: SearchResultItemProps) {
   return (
     <div
       onClick={handleClick}
-      className={clsx(
-        'p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors',
-        'border-b border-gray-200 dark:border-gray-700'
-      )}
+      className="px-4 py-3 cursor-pointer transition-colors"
+      style={{ borderBottom: '1px solid var(--border-light)' }}
+      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-hover)'}
+      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
     >
-      {/* Header: conversation name and date */}
-      <div className="flex items-center justify-between mb-2">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm text-gray-900 dark:text-white">
+          <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
             {result.conversation.displayName}
           </span>
           {result.conversation.isGroup && (
-            <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded"
+              style={{ background: 'var(--surface-hover)', color: 'var(--muted)' }}
+            >
               Group
             </span>
           )}
         </div>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs" style={{ color: 'var(--muted)' }}>
           {formatMessageTimestamp(result.message.date)}
         </span>
       </div>
 
-      {/* Sender (if not from me) */}
+      {/* Sender */}
       {!result.message.isFromMe && (
-        <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+        <div className="text-xs font-medium mb-1" style={{ color: 'var(--muted)' }}>
           {senderName}
         </div>
       )}
@@ -60,43 +61,28 @@ export function SearchResultItem({ result, onClose }: SearchResultItemProps) {
       {result.contextBefore && result.contextBefore.length > 0 && (
         <div className="mb-1">
           {result.contextBefore.map((msg) => (
-            <div key={msg.id} className="text-sm text-gray-400 dark:text-gray-500 truncate">
-              {msg.isFromMe ? 'You: ' : ''}
-              {msg.text || '(attachment)'}
+            <div key={msg.id} className="text-xs truncate" style={{ color: 'var(--muted-light)' }}>
+              {msg.isFromMe ? 'You: ' : ''}{msg.text || '(attachment)'}
             </div>
           ))}
         </div>
       )}
 
-      {/* Matched message with highlighted snippet */}
+      {/* Matched message */}
       <div
-        className={clsx('text-sm mb-1', {
-          'text-blue-600 dark:text-blue-400': result.message.isFromMe,
-          'text-gray-900 dark:text-white': !result.message.isFromMe,
-        })}
-      >
-        <div
-          className="font-medium"
-          dangerouslySetInnerHTML={{ __html: result.snippet }}
-        />
-      </div>
+        className="text-sm font-medium"
+        style={{ color: result.message.isFromMe ? 'var(--accent)' : 'var(--foreground)' }}
+        dangerouslySetInnerHTML={{ __html: result.snippet }}
+      />
 
       {/* Context after */}
       {result.contextAfter && result.contextAfter.length > 0 && (
         <div className="mt-1">
           {result.contextAfter.map((msg) => (
-            <div key={msg.id} className="text-sm text-gray-400 dark:text-gray-500 truncate">
-              {msg.isFromMe ? 'You: ' : ''}
-              {msg.text || '(attachment)'}
+            <div key={msg.id} className="text-xs truncate" style={{ color: 'var(--muted-light)' }}>
+              {msg.isFromMe ? 'You: ' : ''}{msg.text || '(attachment)'}
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Match count indicator */}
-      {result.matchCount > 1 && (
-        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {result.matchCount} matches in this message
         </div>
       )}
     </div>

@@ -5,13 +5,48 @@ import { formatMessageTimestamp } from '@/lib/utils/date-conversion';
 import { formatContactIdentifier } from '@/lib/utils/format';
 import { AttachmentPreview } from './AttachmentPreview';
 import { useState } from 'react';
-import clsx from 'clsx';
 
 interface MessageBubbleProps {
   message: Message;
   position?: 'first' | 'middle' | 'last' | 'single';
   showTimestamp?: boolean;
   showSender?: boolean;
+}
+
+// FIX: Use explicit style objects instead of conflicting clsx conditions
+function getBubbleRadius(position: string, isFromMe: boolean): string {
+  const r = 18;
+  const s = 4; // small radius for grouped corners
+
+  if (position === 'single') {
+    return `${r}px`;
+  }
+
+  if (isFromMe) {
+    // Sent messages: tail on right side
+    switch (position) {
+      case 'first':
+        return `${r}px ${r}px ${s}px ${r}px`;
+      case 'middle':
+        return `${r}px ${s}px ${s}px ${r}px`;
+      case 'last':
+        return `${r}px ${s}px ${r}px ${r}px`;
+      default:
+        return `${r}px`;
+    }
+  } else {
+    // Received messages: tail on left side
+    switch (position) {
+      case 'first':
+        return `${r}px ${r}px ${r}px ${s}px`;
+      case 'middle':
+        return `${s}px ${r}px ${r}px ${s}px`;
+      case 'last':
+        return `${s}px ${r}px ${r}px ${r}px`;
+      default:
+        return `${r}px`;
+    }
+  }
 }
 
 export function MessageBubble({
@@ -26,109 +61,67 @@ export function MessageBubble({
   const hasText = message.text && message.text.trim().length > 0;
   const hasAttachments = message.hasAttachments && message.attachments && message.attachments.length > 0;
 
-  // Don't render messages with no text and no attachments (empty bubbles)
-  if (!hasText && !hasAttachments) {
-    return null;
-  }
+  if (!hasText && !hasAttachments) return null;
 
-  // Different styling for sent (blue) vs received (gray) messages
-  const bubbleClasses = clsx(
-    'inline-block px-4 py-2 max-w-[65%] break-words',
-    {
-      // Sent messages (blue)
-      'bg-[#0B93F6] text-white': isFromMe,
-      // Received messages (gray)
-      'bg-[#E5E5EA] dark:bg-[#3A3A3C] text-black dark:text-white': !isFromMe,
-
-      // Rounded corners based on position in group
-      // Single message (not grouped) - all corners fully rounded
-      'rounded-[18px]': position === 'single',
-
-      // First in group - bottom tail corner less rounded
-      'rounded-[18px]': position === 'first',
-      'rounded-br-[4px]': position === 'first' && isFromMe,
-      'rounded-bl-[4px]': position === 'first' && !isFromMe,
-
-      // Middle in group - both tail corners less rounded
-      'rounded-[18px]': position === 'middle',
-      'rounded-br-[4px] rounded-tr-[4px]': position === 'middle' && isFromMe,
-      'rounded-bl-[4px] rounded-tl-[4px]': position === 'middle' && !isFromMe,
-
-      // Last in group - top tail corner less rounded
-      'rounded-[18px]': position === 'last',
-      'rounded-tr-[4px]': position === 'last' && isFromMe,
-      'rounded-tl-[4px]': position === 'last' && !isFromMe,
-    }
-  );
-
-  // Handle special message types
   const isReaction = message.associatedMessageGuid !== null;
-  const hasExpressiveStyle = message.expressiveSendStyleId !== null;
+  const borderRadius = getBubbleRadius(position, isFromMe);
 
   return (
     <div
-      className={clsx('flex', {
-        'justify-end': isFromMe,
-        'justify-start': !isFromMe,
-      })}
+      className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex flex-col gap-1 max-w-[70%]">
-        {/* Sender name (for received messages) */}
+      <div className="flex flex-col gap-0.5 max-w-[70%]">
+        {/* Sender name */}
         {showSender && !isFromMe && (
-          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 px-2 mb-1">
+          <div className="text-xs font-medium px-2 mb-0.5" style={{ color: 'var(--muted)' }}>
             {message.senderName || (message.senderId ? formatContactIdentifier(message.senderId) : 'Unknown')}
           </div>
         )}
 
-        {/* Message bubble */}
-        <div className={bubbleClasses}>
+        {/* Bubble */}
+        <div
+          className="inline-block px-3.5 py-2 max-w-full break-words"
+          style={{
+            background: isFromMe ? 'var(--bubble-sent)' : 'var(--bubble-recv)',
+            color: isFromMe ? 'var(--bubble-sent-text)' : 'var(--bubble-recv-text)',
+            borderRadius,
+          }}
+        >
           {/* Attachments */}
-          {message.hasAttachments && message.attachments && message.attachments.length > 0 && (
-            <div className="flex flex-col gap-2 mb-2">
-              {message.attachments.map((attachment) => (
+          {hasAttachments && (
+            <div className="flex flex-col gap-2 mb-1">
+              {message.attachments!.map((attachment) => (
                 <AttachmentPreview key={attachment.id} attachment={attachment} />
               ))}
             </div>
           )}
 
-          {/* Text content */}
+          {/* Text */}
           {hasText && (
-            <div
-              className={clsx('whitespace-pre-wrap', {
-                // Add effects for expressive send styles
-                'animate-pulse': hasExpressiveStyle === 'com.apple.messages.effect.CKConfettiEffect',
-                'font-bold text-lg': hasExpressiveStyle === 'com.apple.messages.effect.CKHappyBirthdayEffect',
-              })}
-            >
+            <div className="whitespace-pre-wrap text-[15px] leading-snug">
               {message.text}
             </div>
           )}
 
           {/* Reaction indicator */}
           {isReaction && (
-            <div className="text-xs opacity-70 mt-1">
-              Reacted to a message
-            </div>
+            <div className="text-xs opacity-60 mt-1">Reacted to a message</div>
           )}
         </div>
 
-        {/* Timestamp (on hover or if showTimestamp is true) */}
+        {/* Timestamp */}
         {(showTimestamp || isHovered) && (
           <div
-            className={clsx(
-              'text-xs text-gray-500 dark:text-gray-400 px-2 transition-opacity',
-              {
-                'text-right': isFromMe,
-                'text-left': !isFromMe,
-                'opacity-100': showTimestamp || isHovered,
-                'opacity-0': !showTimestamp && !isHovered,
-              }
-            )}
+            className={`text-xs px-2 transition-opacity duration-200 ${isFromMe ? 'text-right' : 'text-left'}`}
+            style={{
+              color: 'var(--muted)',
+              opacity: showTimestamp || isHovered ? 1 : 0,
+            }}
           >
             {formatMessageTimestamp(message.date)}
-            {!message.isSent && isFromMe && ' • Not sent'}
+            {!message.isSent && isFromMe && ' \u00b7 Not sent'}
           </div>
         )}
       </div>

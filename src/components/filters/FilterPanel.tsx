@@ -1,10 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { DateRangePicker } from './DateRangePicker';
 import { FilterDropdowns } from './FilterDropdowns';
 import type { SearchFilters } from '@/types/database';
-import clsx from 'clsx';
 
 interface FilterPanelProps {
   filters: SearchFilters;
@@ -14,10 +12,6 @@ interface FilterPanelProps {
 }
 
 export function FilterPanel({ filters, onFiltersChange, isOpen = true, onToggle }: FilterPanelProps) {
-  const handleClearAll = () => {
-    onFiltersChange({});
-  };
-
   const hasActiveFilters =
     filters.dateFrom ||
     filters.dateTo ||
@@ -26,59 +20,50 @@ export function FilterPanel({ filters, onFiltersChange, isOpen = true, onToggle 
     (filters.chatType && filters.chatType !== 'all') ||
     (filters.personIds && filters.personIds.length > 0);
 
+  const activeCount = Object.values(filters).filter(Boolean).length;
+
   return (
     <div
-      className={clsx(
-        'flex-shrink-0 border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-black transition-all duration-300',
-        {
-          'w-80': isOpen,
-          'w-0 overflow-hidden': !isOpen,
-        }
-      )}
+      className="flex-shrink-0 transition-all duration-200 overflow-hidden"
+      style={{
+        width: isOpen ? 280 : 0,
+        borderLeft: isOpen ? '1px solid var(--border)' : 'none',
+        background: 'var(--surface)',
+      }}
     >
       {isOpen && (
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col w-[280px] animate-fade-in">
           {/* Header */}
-          <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h2>
-              {onToggle && (
-                <button
-                  onClick={onToggle}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-                  title="Close filters"
-                >
-                  <svg
-                    className="w-5 h-5 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+          <div className="px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Filters</h2>
+              <div className="flex items-center gap-2">
+                {hasActiveFilters && (
+                  <button
+                    onClick={() => onFiltersChange({})}
+                    className="text-xs font-medium"
+                    style={{ color: 'var(--accent)' }}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              )}
+                    Clear all
+                  </button>
+                )}
+                {onToggle && (
+                  <button
+                    onClick={onToggle}
+                    className="p-1 rounded transition-colors"
+                    style={{ color: 'var(--muted)' }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
-
-            {/* Clear all button */}
-            {hasActiveFilters && (
-              <button
-                onClick={handleClearAll}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Clear all filters
-              </button>
-            )}
           </div>
 
           {/* Filters */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
-            {/* Date range */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
             <DateRangePicker
               dateFrom={filters.dateFrom}
               dateTo={filters.dateTo}
@@ -86,10 +71,8 @@ export function FilterPanel({ filters, onFiltersChange, isOpen = true, onToggle 
               onDateToChange={(date) => onFiltersChange({ ...filters, dateTo: date })}
             />
 
-            {/* Divider */}
-            <div className="border-t border-gray-200 dark:border-gray-700" />
+            <div style={{ borderTop: '1px solid var(--border)' }} />
 
-            {/* Dropdowns */}
             <FilterDropdowns
               direction={filters.direction || 'all'}
               onDirectionChange={(direction) =>
@@ -108,10 +91,9 @@ export function FilterPanel({ filters, onFiltersChange, isOpen = true, onToggle 
 
           {/* Active filter count */}
           {hasActiveFilters && (
-            <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-blue-50 dark:bg-blue-900/20">
-              <div className="text-sm text-blue-700 dark:text-blue-300">
-                {Object.values(filters).filter(Boolean).length} active{' '}
-                {Object.values(filters).filter(Boolean).length === 1 ? 'filter' : 'filters'}
+            <div className="px-4 py-2.5 flex-shrink-0" style={{ borderTop: '1px solid var(--border)', background: 'var(--accent-soft)' }}>
+              <div className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
+                {activeCount} active {activeCount === 1 ? 'filter' : 'filters'}
               </div>
             </div>
           )}

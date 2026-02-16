@@ -24,8 +24,8 @@ export function loadContacts(): Record<string, string> {
     const data = JSON.parse(fileContent);
     contactsCache = data.contacts || {};
 
-    console.log(`[Contacts] Loaded ${Object.keys(contactsCache).length} contact mappings`);
-    return contactsCache;
+    console.log(`[Contacts] Loaded ${Object.keys(contactsCache!).length} contact mappings`);
+    return contactsCache!;
   } catch (error) {
     console.error('[Contacts] Error loading contacts.json:', error);
     contactsCache = {};

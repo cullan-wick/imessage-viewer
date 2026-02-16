@@ -9,101 +9,62 @@ interface DateRangePickerProps {
   onDateToChange: (date: Date | undefined) => void;
 }
 
-export function DateRangePicker({
-  dateFrom,
-  dateTo,
-  onDateFromChange,
-  onDateToChange,
-}: DateRangePickerProps) {
-  const formatDateForInput = (date: Date | undefined) => {
-    return date ? format(date, 'yyyy-MM-dd') : '';
-  };
+export function DateRangePicker({ dateFrom, dateTo, onDateFromChange, onDateToChange }: DateRangePickerProps) {
+  const formatDateForInput = (date: Date | undefined) => date ? format(date, 'yyyy-MM-dd') : '';
 
-  const handlePreset = (preset: 'week' | 'month' | 'year' | 'all') => {
-    const now = new Date();
+  const presets = [
+    { label: '7 days', action: () => { onDateFromChange(startOfDay(subDays(new Date(), 7))); onDateToChange(undefined); }},
+    { label: '30 days', action: () => { onDateFromChange(startOfDay(subMonths(new Date(), 1))); onDateToChange(undefined); }},
+    { label: '1 year', action: () => { onDateFromChange(startOfDay(subYears(new Date(), 1))); onDateToChange(undefined); }},
+    { label: 'All time', action: () => { onDateFromChange(undefined); onDateToChange(undefined); }},
+  ];
 
-    switch (preset) {
-      case 'week':
-        onDateFromChange(startOfDay(subDays(now, 7)));
-        onDateToChange(undefined);
-        break;
-      case 'month':
-        onDateFromChange(startOfDay(subMonths(now, 1)));
-        onDateToChange(undefined);
-        break;
-      case 'year':
-        onDateFromChange(startOfDay(subYears(now, 1)));
-        onDateToChange(undefined);
-        break;
-      case 'all':
-        onDateFromChange(undefined);
-        onDateToChange(undefined);
-        break;
-    }
+  const inputStyle = {
+    background: 'var(--background)',
+    color: 'var(--foreground)',
+    border: '1px solid var(--border)',
   };
 
   return (
     <div className="space-y-3">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Date Range
-        </label>
+      <label className="block text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Date Range</label>
 
-        {/* Preset buttons */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
+      <div className="grid grid-cols-2 gap-1.5">
+        {presets.map((p) => (
           <button
-            onClick={() => handlePreset('week')}
-            className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+            key={p.label}
+            onClick={p.action}
+            className="px-2.5 py-1.5 text-xs rounded-md transition-colors"
+            style={{ background: 'var(--background)', color: 'var(--muted)', border: '1px solid var(--border)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-hover)'; e.currentTarget.style.color = 'var(--foreground)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--background)'; e.currentTarget.style.color = 'var(--muted)'; }}
           >
-            Last 7 days
+            {p.label}
           </button>
-          <button
-            onClick={() => handlePreset('month')}
-            className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-          >
-            Last month
-          </button>
-          <button
-            onClick={() => handlePreset('year')}
-            className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-          >
-            Last year
-          </button>
-          <button
-            onClick={() => handlePreset('all')}
-            className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-          >
-            All time
-          </button>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <div>
+          <label className="block text-[11px] mb-1" style={{ color: 'var(--muted)' }}>From</label>
+          <input
+            type="date"
+            value={formatDateForInput(dateFrom)}
+            onChange={(e) => onDateFromChange(e.target.value ? new Date(e.target.value) : undefined)}
+            className="w-full px-2.5 py-1.5 rounded-md text-xs focus:outline-none focus-ring"
+            style={inputStyle}
+          />
         </div>
-      </div>
-
-      {/* From date */}
-      <div>
-        <label htmlFor="date-from" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-          From
-        </label>
-        <input
-          id="date-from"
-          type="date"
-          value={formatDateForInput(dateFrom)}
-          onChange={(e) => onDateFromChange(e.target.value ? new Date(e.target.value) : undefined)}
-          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      {/* To date */}
-      <div>
-        <label htmlFor="date-to" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-          To
-        </label>
-        <input
-          id="date-to"
-          type="date"
-          value={formatDateForInput(dateTo)}
-          onChange={(e) => onDateToChange(e.target.value ? new Date(e.target.value) : undefined)}
-          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div>
+          <label className="block text-[11px] mb-1" style={{ color: 'var(--muted)' }}>To</label>
+          <input
+            type="date"
+            value={formatDateForInput(dateTo)}
+            onChange={(e) => onDateToChange(e.target.value ? new Date(e.target.value) : undefined)}
+            className="w-full px-2.5 py-1.5 rounded-md text-xs focus:outline-none focus-ring"
+            style={inputStyle}
+          />
+        </div>
       </div>
     </div>
   );

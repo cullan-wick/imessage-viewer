@@ -5,7 +5,7 @@ import type { Message, Conversation } from '@/types/database';
 import { MessageGroup } from './MessageGroup';
 import { DateDivider } from './DateDivider';
 import { MediaGallery } from '../media/MediaGallery';
-import { groupMessagesByDay, isSameDay } from '@/lib/utils/date-conversion';
+import { groupMessagesByDay } from '@/lib/utils/date-conversion';
 
 interface ChatViewProps {
   chatId: number;
@@ -34,37 +34,29 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
       .then((res) => res.json())
       .then((data) => {
         if (data.messages) {
-          // Parse date strings back to Date objects
           const parsedMessages = data.messages.map((msg: any) => ({
             ...msg,
             date: new Date(msg.date),
           }));
-
-          // Messages come in DESC order (newest first), but we want to display oldest first
-          const sortedMessages = [...parsedMessages].reverse();
-          setMessages(sortedMessages);
+          // Messages come DESC, display oldest first
+          setMessages([...parsedMessages].reverse());
           setHasMore(data.hasMore);
         }
       })
-      .catch((error) => {
-        console.error('Error fetching messages:', error);
-      })
+      .catch((error) => console.error('Error fetching messages:', error))
       .finally(() => {
         setIsLoading(false);
-        // Scroll to bottom after initial load
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
         }, 100);
       });
   }, [chatId]);
 
-  // Load more messages when scrolling to top
+  // Load more messages on scroll to top
   const loadMoreMessages = useCallback(async () => {
     if (!hasMore || isLoadingMore || !messages.length) return;
 
     setIsLoadingMore(true);
-
-    // Get the oldest message date
     const oldestMessage = messages[0];
     const beforeDate = oldestMessage.date.toISOString();
 
@@ -73,28 +65,23 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
       const data = await res.json();
 
       if (data.messages && data.messages.length > 0) {
-        // Store current scroll position
         if (scrollContainerRef.current) {
           previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
         }
 
-        // Parse date strings back to Date objects
         const parsedMessages = data.messages.map((msg: any) => ({
           ...msg,
           date: new Date(msg.date),
         }));
 
-        // Messages come in DESC order, reverse them
         const olderMessages = [...parsedMessages].reverse();
         setMessages((prev) => [...olderMessages, ...prev]);
         setHasMore(data.hasMore);
 
-        // Restore scroll position after new messages are added
         setTimeout(() => {
           if (scrollContainerRef.current) {
             const newScrollHeight = scrollContainerRef.current.scrollHeight;
-            const scrollDiff = newScrollHeight - previousScrollHeight.current;
-            scrollContainerRef.current.scrollTop = scrollDiff;
+            scrollContainerRef.current.scrollTop = newScrollHeight - previousScrollHeight.current;
           }
         }, 0);
       }
@@ -105,14 +92,9 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
     }
   }, [chatId, messages, hasMore, isLoadingMore]);
 
-  // Handle scroll event for infinite scroll
   const handleScroll = useCallback(() => {
     if (!scrollContainerRef.current || isLoadingMore) return;
-
-    const { scrollTop } = scrollContainerRef.current;
-
-    // Load more when scrolled near the top
-    if (scrollTop < 200 && hasMore) {
+    if (scrollContainerRef.current.scrollTop < 200 && hasMore) {
       loadMoreMessages();
     }
   }, [hasMore, isLoadingMore, loadMoreMessages]);
@@ -120,18 +102,14 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
   // Group messages by day and by sender
   const groupedMessages = groupMessagesByDay(messages);
 
-  // Group consecutive messages from the same sender
   const groupMessagesBySender = (msgs: Message[]): Message[][] => {
     if (msgs.length === 0) return [];
-
     const groups: Message[][] = [];
     let currentGroup: Message[] = [msgs[0]];
 
     for (let i = 1; i < msgs.length; i++) {
       const prevMsg = msgs[i - 1];
       const currMsg = msgs[i];
-
-      // Check if messages are from the same sender and within 1 minute
       const timeDiff = (currMsg.date.getTime() - prevMsg.date.getTime()) / 1000;
       const sameSender = prevMsg.isFromMe === currMsg.isFromMe && prevMsg.senderId === currMsg.senderId;
 
@@ -142,130 +120,102 @@ export function ChatView({ chatId, conversation }: ChatViewProps) {
         currentGroup = [currMsg];
       }
     }
-
     groups.push(currentGroup);
     return groups;
   };
 
-  // Empty state
   if (!chatId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-white dark:bg-black">
-        <div className="text-center text-gray-500 dark:text-gray-400">
-          <svg
-            className="w-16 h-16 mx-auto mb-4 opacity-50"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
-          <p className="text-lg font-medium">Select a conversation to start</p>
-        </div>
+      <div className="flex-1 flex items-center justify-center" style={{ background: 'var(--background)' }}>
+        <p style={{ color: 'var(--muted)' }}>Select a conversation</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-black h-screen">
+    <div className="flex-1 flex flex-col min-w-0" style={{ background: 'var(--background)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {conversation?.displayName || 'Unknown'}
+      <div
+        className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+        style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}
+      >
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold truncate" style={{ color: 'var(--foreground)' }}>
+            {conversation?.displayName || 'Loading...'}
           </h2>
           {conversation && conversation.participants.length > 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>
               {conversation.participants.map((p) => p.contactId).join(', ')}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsGalleryOpen(true)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-            title="Open Media Gallery"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </button>
-        </div>
+        <button
+          onClick={() => setIsGalleryOpen(true)}
+          className="p-2 rounded-lg transition-colors flex-shrink-0"
+          style={{ color: 'var(--muted)' }}
+          title="Media Gallery"
+          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-hover)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </button>
       </div>
 
-      {/* Messages area */}
+      {/* Messages */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-6 py-4"
+        className="flex-1 overflow-y-auto px-4 py-4"
         onScroll={handleScroll}
       >
-        {/* Loading more indicator */}
         {isLoadingMore && (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+          <div className="flex justify-center py-4 animate-fade-in">
+            <div
+              className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin"
+              style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
+            />
           </div>
         )}
 
-        {/* Loading state */}
         {isLoading && (
           <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+            <div
+              className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+              style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
+            />
           </div>
         )}
 
-        {/* Messages */}
         {!isLoading && (
-          <>
+          <div className="max-w-3xl mx-auto">
             {Array.from(groupedMessages.entries()).map(([dayKey, dayMessages]) => {
               const messageGroups = groupMessagesBySender(dayMessages);
-
               return (
                 <div key={dayKey}>
                   <DateDivider date={dayMessages[0].date} />
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {messageGroups.map((group, idx) => (
-                      <MessageGroup
-                        key={`${dayKey}-${idx}`}
-                        messages={group}
-                        showSender={true}
-                      />
+                      <MessageGroup key={`${dayKey}-${idx}`} messages={group} showSender={true} />
                     ))}
                   </div>
                 </div>
               );
             })}
-          </>
-        )}
-
-        {/* Empty state for no messages */}
-        {!isLoading && messages.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center text-gray-500 dark:text-gray-400">
-              <p>No messages in this conversation</p>
-            </div>
           </div>
         )}
 
-        {/* Scroll anchor */}
+        {!isLoading && messages.length === 0 && (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>No messages in this conversation</p>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
       {/* Media Gallery */}
-      <MediaGallery
-        chatId={chatId}
-        isOpen={isGalleryOpen}
-        onClose={() => setIsGalleryOpen(false)}
-      />
+      <MediaGallery chatId={chatId} isOpen={isGalleryOpen} onClose={() => setIsGalleryOpen(false)} />
     </div>
   );
 }
