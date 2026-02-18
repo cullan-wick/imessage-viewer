@@ -1,5 +1,10 @@
 // Raw database row types matching chat.db schema
 
+// Type for generic SQL query results (used with better-sqlite3)
+export interface DbRow {
+  [key: string]: unknown;
+}
+
 export interface MessageRow {
   ROWID: number;
   guid: string;
@@ -137,6 +142,26 @@ export interface Attachment {
   messageDate?: Date;
 }
 
+export interface PhotoEntry extends Attachment {
+  senderIdentifier: string;
+  senderName: string | null;
+  isFromMe: boolean;
+  chatId: number;
+}
+
+export interface PhotoContact {
+  identifier: string;
+  displayName: string | null;
+  photoCount: number;
+}
+
+export interface PhotoMonthBucket {
+  yearMonth: string;
+  year: number;
+  month: number;
+  count: number;
+}
+
 export interface SearchResult {
   message: Message;
   conversation: Conversation;
@@ -146,7 +171,7 @@ export interface SearchResult {
   matchCount: number;
 }
 
-export type TopContactsPeriod = '7d' | '30d' | '6m' | '1y' | 'all';
+export type TopContactsPeriod = "7d" | "30d" | "6m" | "1y" | "all";
 
 export interface TopContact {
   name: string;
@@ -196,11 +221,33 @@ export interface Statistics {
   }>;
 }
 
+export interface ContactListEntry {
+  name: string;
+  identifier: string;
+  messageCount: number;
+  sentCount: number;
+  receivedCount: number;
+}
+
+export interface ContactAnalytics {
+  name: string;
+  identifier: string;
+  messageCount: number;
+  sentCount: number;
+  receivedCount: number;
+  firstMessageDate: Date | null;
+  lastMessageDate: Date | null;
+  messagesOverTime: Array<{ period: string; count: number; sent: number; received: number }>;
+  activityByHour: Array<{ hour: number; count: number }>;
+  streak: { longestStreak: number; currentStreak: number };
+  mediaCount: number;
+}
+
 export interface SearchFilters {
   dateFrom?: Date;
   dateTo?: Date;
   personIds?: number[];
-  direction?: 'sent' | 'received' | 'all';
+  direction?: "sent" | "received" | "all";
   hasAttachment?: boolean;
-  chatType?: 'all' | 'group' | 'individual';
+  chatType?: "all" | "group" | "individual";
 }

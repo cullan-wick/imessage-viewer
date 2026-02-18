@@ -1,4 +1,15 @@
-import type { Conversation, Message, SearchResult, Statistics, Attachment } from './database';
+import type {
+  Conversation,
+  Message,
+  SearchResult,
+  Statistics,
+  Attachment,
+  PhotoEntry,
+  PhotoContact,
+  PhotoMonthBucket,
+  ContactListEntry,
+  ContactAnalytics,
+} from "./database";
 
 // API Response types
 
@@ -27,10 +38,31 @@ export interface MediaResponse {
   total: number;
 }
 
+export interface AllPhotosResponse {
+  photos: PhotoEntry[];
+  hasMore: boolean;
+  total: number;
+}
+
+export interface PhotoContactsResponse {
+  contacts: PhotoContact[];
+}
+
+export interface PhotoTimelineResponse {
+  buckets: PhotoMonthBucket[];
+  totalPhotos: number;
+}
+
+export interface ContactListResponse {
+  contacts: ContactListEntry[];
+}
+
+export interface ContactAnalyticsResponse extends ContactAnalytics {}
+
 export interface StatsResponse extends Statistics {}
 
 export interface InitSearchResponse {
-  status: 'completed' | 'in_progress' | 'error';
+  status: "completed" | "in_progress" | "error";
   messagesIndexed: number;
   duration: number;
   error?: string;
@@ -61,15 +93,28 @@ export interface SearchQuery {
   dateFrom?: string;
   dateTo?: string;
   personId?: string;
-  direction?: 'sent' | 'received' | 'all';
-  hasAttachment?: 'true' | 'false';
-  chatType?: 'all' | 'group' | 'individual';
+  direction?: "sent" | "received" | "all";
+  hasAttachment?: "true" | "false";
+  chatType?: "all" | "group" | "individual";
   limit?: number;
   offset?: number;
 }
 
 export interface MediaQuery {
-  type?: 'image' | 'video' | 'all';
+  type?: "image" | "video" | "all";
   limit?: number;
   offset?: number;
+}
+
+export interface PhotosQuery {
+  contact?: string;
+  type?: "image" | "video" | "all";
+  yearMonth?: string;
+  limit?: number;
+  offset?: number;
+  order?: "asc" | "desc";
+}
+
+export interface PhotoTimelineQuery {
+  contact?: string;
 }

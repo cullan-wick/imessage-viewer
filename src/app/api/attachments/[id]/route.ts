@@ -4,6 +4,11 @@ import { resolveAttachmentPath } from '@/lib/utils/attachment-path';
 import { promises as fs } from 'fs';
 import { stat } from 'fs/promises';
 import path from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import os from 'os';
+
+const execFileAsync = promisify(execFile);
 
 export const dynamic = 'force-dynamic';
 
@@ -97,13 +102,31 @@ export async function GET(
     }
 
     // No range request - serve entire file
-    const fileBuffer = await fs.readFile(filePath);
+    let fileBuffer: Buffer = await fs.readFile(filePath);
+    let responseContentType = contentType;
+    let responseSize = fileSize;
 
-    return new NextResponse(fileBuffer, {
+    // Convert HEIC/HEIF to JPEG for browser compatibility using macOS sips
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.heic' || ext === '.heif' || contentType === 'image/heic' || contentType === 'image/heif') {
+      try {
+        const tmpOut = path.join(os.tmpdir(), `heic-${attachmentId}-${Date.now()}.jpg`);
+        await execFileAsync('sips', ['-s', 'format', 'jpeg', filePath, '--out', tmpOut]);
+        fileBuffer = await fs.readFile(tmpOut);
+        responseContentType = 'image/jpeg';
+        responseSize = fileBuffer.length;
+        fs.unlink(tmpOut).catch(() => {});
+      } catch (e) {
+        // Conversion failed — serve original (Safari handles HEIC natively)
+        console.warn(`[Attachment ${attachmentId}] HEIC conversion failed, serving original:`, e);
+      }
+    }
+
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
-        'Content-Type': contentType,
-        'Content-Length': fileSize.toString(),
+        'Content-Type': responseContentType,
+        'Content-Length': responseSize.toString(),
         'Content-Disposition': `inline; filename="${path.basename(filePath)}"`,
         'Accept-Ranges': 'bytes',
         'Cache-Control': 'public, max-age=31536000', // Cache for 1 year

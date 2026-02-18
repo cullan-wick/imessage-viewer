@@ -8,6 +8,7 @@ import { MessagesOverTimeChart } from '@/components/stats/MessagesOverTimeChart'
 import { SentReceivedChart } from '@/components/stats/SentReceivedChart';
 import { ActivityHoursChart } from '@/components/stats/ActivityHoursChart';
 import { StreakChart } from '@/components/stats/StreakChart';
+import { CumulativeChart } from '@/components/stats/CumulativeChart';
 import type { Statistics, TopContactsPeriod } from '@/types/database';
 
 export default function StatsPage() {
@@ -151,6 +152,7 @@ export default function StatsPage() {
           </div>
           <StreakChart data={stats.streaks} />
           <MessagesOverTimeChart data={messagesOverTimeData} />
+          <CumulativeChart data={stats.messagesOverTime} />
           <ActivityHoursChart data={stats.activityByHour} />
         </div>
       </div>
